@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="et">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a101d">
+  <meta name="description" content="Tasuta interaktiivne optsioonikalkulaator. Arvuta Euroopa tüüpi call- ja put-optsiooni teoreetiline hind, kreeklased ja kasumi-kahjumi graafik.">
+  <title>OptionLab — optsioonikalkulaator</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080e1a; --panel: #111b2d; --panel2: #152139; --line: #28354d;
+      --text: #eaf2ff; --muted: #a3b0c7; --muted2: #7686a3;
+      --mint: #7ef0cb; --blue: #91b9ff; --red: #ffa4a4;
+      --shadow: 0 22px 70px rgba(0,0,0,.23);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin:0; background: radial-gradient(ellipse at 84% -10%, #173153 0%, transparent 35%), radial-gradient(ellipse at 0% 32%, #13273a 0%, transparent 42%), var(--bg); color:var(--text); font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont,"Segoe UI", sans-serif; line-height:1.5; }
+    a { color: inherit; }
+    button, input { font:inherit; }
+    .wrap { width:min(1190px, calc(100% - 48px)); margin-inline:auto; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:18px; padding-block:27px; }
+    .brand { display:inline-flex; align-items:center; gap:12px; text-decoration:none; font-size:20px; font-weight:800; letter-spacing:-.8px; }
+    .brandmark { width:39px; height:39px; border-radius:12px; display:grid; place-items:center; color:#09221d; background:linear-gradient(145deg,#a2ffe0,#70c4e7); box-shadow:0 0 40px #7ef0cb2b; font-size:23px; font-weight:800; }
+    .top-right { display:flex; gap:14px; align-items:center; color:var(--muted); font-size:13px; }
+    .pill { border:1px solid #38526a; color:#bfead9; background:#152b36; border-radius:30px; padding:7px 13px; font-size:11px; letter-spacing:1.2px; font-weight:750; }
+    .hero { padding:42px 0 29px; display:flex; justify-content:space-between; gap:24px; align-items:flex-end; }
+    .eyebrow { font-size:11px; letter-spacing:2px; font-weight:750; color:var(--mint); text-transform:uppercase; display:block; margin-bottom:13px; }
+    h1 { font-weight:800; font-size:clamp(34px,4.4vw,57px); letter-spacing:-2.4px; line-height:1.08; margin:0 0 17px; max-width:690px; }
+    h1 span { color:var(--mint); }
+    .hero p { margin:0; color:var(--muted); font-size:15px; max-width:650px; }
+    .hero-note { flex:0 0 auto; display:flex; flex-direction:column; padding:18px 19px; border:1px solid #2e4860; background:#122236b5; border-radius:16px; gap:3px; min-width:175px; }
+    .hero-note strong { font-size:19px; font-weight:800; letter-spacing:-.5px; }
+    .hero-note small { color:var(--muted); }
+    .workspace { display:grid; grid-template-columns: 405px minmax(0,1fr); gap:20px; align-items:start; margin:13px auto 22px; }
+    .panel { background:linear-gradient(145deg,#142139,#101a2c 70%); border:1px solid var(--line); border-radius:21px; box-shadow:var(--shadow); }
+    .form-panel { padding:26px; }
+    .panel-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:22px; }
+    h2 { font-size:18px; letter-spacing:-.5px; margin:0; font-weight:750; }
+    .subtle { color:var(--muted2); font-size:12px; }
+    .reset { color:var(--muted); border:none; background:none; padding:5px; cursor:pointer; font-size:12px; }
+    .reset:hover { color:var(--mint); }
+    .field-label { color:#c2d0e6; font-size:12px; font-weight:700; display:block; margin-bottom:9px; }
+    .seg { display:grid; grid-template-columns:repeat(2,1fr); gap:5px; padding:5px; border:1px solid #31435a; border-radius:12px; background:#0c1728; margin-bottom:19px; }
+    .seg button { border:0; border-radius:8px; padding:10px 12px; color:#a5b4ca; background:transparent; font-weight:700; cursor:pointer; transition:background .15s, color .15s; }
+    .seg button[aria-pressed="true"] { background:#285a5b; box-shadow:inset 0 0 0 1px #4ea29a; color:#d5fff1; }
+    .seg.secondary button[aria-pressed="true"] { background:#293c5b; box-shadow:inset 0 0 0 1px #58759e; color:#e2eeff; }
+    .fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:17px 13px; }
+    .field { min-width:0; }
+    .inputwrap { display:flex; align-items:center; gap:8px; border:1px solid #344660; border-radius:11px; background:#0c1728; height:46px; padding:0 12px; transition:border .15s,box-shadow .15s; }
+    .inputwrap:focus-within { border-color:#78d5c8; box-shadow:0 0 0 3px #7ef0cb1a; }
+    .inputwrap input { display:block; min-width:0; width:100%; background:none; color:var(--text); border:0; outline:0; font-size:16px; font-variant-numeric:tabular-nums; font-weight:650; }
+    .inputwrap span { color:#7186a4; font-size:13px; }
+    .inputwrap input::-webkit-inner-spin-button { -webkit-appearance:none; }
+    .divider { height:1px; background:var(--line); margin:21px 0; }
+    .mini-hint { margin:14px 0 0; color:var(--muted2); font-size:11px; line-height:1.6; }
+    .error { display:none; background:#52282d; border:1px solid #bd686e; color:#ffe3e0; border-radius:10px; font-size:12px; padding:10px; margin-top:14px; }
+    .error.visible { display:block; }
+    .rightcol { display:grid; gap:19px; }
+    .result-panel { padding:27px; }
+    .result-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:19px; }
+    .model-tag { border:1px solid #31435a; border-radius:8px; padding:6px 10px; font-size:10px; text-transform:uppercase; letter-spacing:1.1px; color:var(--muted); }
+    .big-result { background:radial-gradient(ellipse at 85% 10%,#204943,transparent 65%), linear-gradient(125deg,#173c43,#16303c 90%); border:1px solid #3d6b69; border-radius:16px; padding:23px 24px 22px; display:flex; align-items:center; justify-content:space-between; gap:15px; }
+    .big-result .caption { color:#adcfce; font-size:12px; }
+    .big-result .price { font-size:clamp(37px,4vw,53px); font-weight:800; letter-spacing:-2px; font-variant-numeric:tabular-nums; line-height:1.2; margin:6px 0 4px; }
+    .price-unit { font-size:14px; color:#abcbc9; font-weight:500; letter-spacing:0; }
+    .right-bubble { width:51px; height:51px; flex:none; border-radius:15px; background:#b2ffe5; color:#113e34; display:grid;place-items:center;font-size:30px;font-weight:800; }
+    .metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:11px; margin-top:15px; }
+    .metric { border:1px solid #2a3b52; background:#0c192b; border-radius:13px; padding:14px 13px 13px; min-width:0; }
+    .metric .m-title { color:var(--muted); font-size:11px; white-space:nowrap; }
+    .metric .m-value { font-size:19px; font-weight:750; letter-spacing:-.4px; font-variant-numeric:tabular-nums; margin-top:7px; overflow-wrap:anywhere; }
+    .greeks-title { margin-top:24px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
+    .greeks { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px; }
+    .greek { text-align:center; border:1px solid #2b3e55; border-radius:12px; padding:12px 5px; background:#0d1b2e; }
+    .greek label { color:var(--muted); display:block; font-size:11px; }
+    .greek strong { display:block; font-size:15px; margin-top:6px; font-variant-numeric:tabular-nums; }
+    .chart-panel { padding:25px 27px 19px; }
+    .chart-subtitle { color:var(--muted); font-size:12px; margin:5px 0 16px; }
+    .chartframe { background:#0a1526; border:1px solid #243751; border-radius:13px; overflow:hidden; }
+    #payoff-chart { display:block; width:100%; height:auto; }
+    .chart-foot { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:9px; margin-top:14px; color:var(--muted); font-size:11px; }
+    .legend { display:flex; gap:16px; align-items:center; }
+    .legend i { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+    .legend .green { background:var(--mint); }.legend .red { background:var(--red); }
+    .about { margin:20px 0 55px; padding:20px 22px; border:1px solid #263950; border-radius:15px; background:#0f1b2ba6; display:flex; justify-content:space-between; align-items:center; gap:22px; }
+    .about strong { display:block; margin-bottom:5px; font-size:13px; }.about p { color:var(--muted); font-size:12px; margin:0; max-width:890px; }
+    .about .decor { font-weight:800; font-size:26px; color:#3d6470; white-space:nowrap; letter-spacing:-6px; }
+    footer { display:flex; justify-content:space-between; align-items:center; color:var(--muted2); font-size:11px; gap:12px; border-top:1px solid #223248; padding:19px 0 25px; }
+    :focus-visible { outline:3px solid var(--mint); outline-offset:3px; }
+    @media(max-width:1000px){ .workspace{grid-template-columns:355px minmax(0,1fr)} .form-panel{padding:21px} .result-panel,.chart-panel{padding:22px}.greeks{grid-template-columns:repeat(3,minmax(0,1fr))}.hero-note{display:none} }
+    @media(max-width:790px){ .workspace{grid-template-columns:1fr}.hero{padding-top:21px}.result-panel{padding:24px}.greeks{grid-template-columns:repeat(5,minmax(0,1fr))} }
+    @media(max-width:520px){ .wrap{width:min(100% - 26px,1190px)}.topbar{padding-block:19px}.top-right .desktop{display:none}h1{font-size:37px;letter-spacing:-1.7px}.hero{padding:22px 0 20px}.form-panel,.result-panel,.chart-panel{padding:18px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.greeks{grid-template-columns:repeat(3,minmax(0,1fr))}.big-result{padding:20px}.big-result .price{font-size:42px}.about{padding:16px}.about .decor{display:none}footer{flex-wrap:wrap} }
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <header class="topbar wrap">
+    <a href="#" class="brand" aria-label="OptionLab avaleht"><span class="brandmark">Δ</span> OptionLab<span style="color:var(--mint)">.</span></a>
+    <div class="top-right"><span class="desktop">Interaktiivne finantsmatemaatika</span><span class="pill">TASUTA TÖÖRIIST</span></div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero" aria-labelledby="hero-title">
+      <div>
+        <span class="eyebrow">Finantsturud · Matemaatika · Analüüs</span>
+        <h1 id="hero-title">Optsioonide hindamine.<br><span>Lihtsalt ja täpselt.</span></h1>
+        <p>Arvuta teoreetiline optsioonihind, riskitundlikkused ja positsiooni kasum või kahjum — reaalajas, otse brauseris.</p>
+      </div>
+      <div class="hero-note"><small>Hinnastamismudel</small><strong>Black–Scholes</strong><small>Euroopa tüüpi optsioonid</small></div>
+    </section>
+
+    <div class="workspace">
+      <section class="panel form-panel" aria-labelledby="inputs-title">
+        <div class="panel-head"><h2 id="inputs-title">Kalkulaatori sisendid</h2><button class="reset" type="button" id="reset">↺ Lähtesta</button></div>
+        <span class="field-label">Optsiooni tüüp</span>
+        <div class="seg" role="group" aria-label="Optsiooni tüüp">
+          <button id="call" type="button" aria-pressed="true">Call · ostuõigus</button>
+          <button id="put" type="button" aria-pressed="false">Put · müügiõigus</button>
+        </div>
+        <div class="fields">
+          <div class="field"><label class="field-label" for="spot">Alusvara hind (S)</label><div class="inputwrap"><span>$</span><input id="spot" type="number" min="0.01" max="10000000" step="0.01" value="100" inputmode="decimal"></div></div>
+          <div class="field"><label class="field-label" for="strike">Täitmishind (K)</label><div class="inputwrap"><span>$</span><input id="strike" type="number" min="0.01" max="10000000" step="0.01" value="105" inputmode="decimal"></div></div>
+          <div class="field"><label class="field-label" for="days">Aeg lõppemiseni</label><div class="inputwrap"><input id="days" type="number" min="1" max="36500" step="1" value="90" inputmode="numeric"><span>päeva</span></div></div>
+          <div class="field"><label class="field-label" for="vol">Volatiilsus (σ)</label><div class="inputwrap"><input id="vol" type="number" min="0.01" max="500" step="0.1" value="25" inputmode="decimal"><span>%</span></div></div>
+          <div class="field"><label class="field-label" for="rate">Riskivaba intress (r)</label><div class="inputwrap"><input id="rate" type="number" min="-99" max="100" step="0.1" value="4" inputmode="decimal"><span>%</span></div></div>
+          <div class="field"><label class="field-label" for="dividend">Dividenditootlus (q)</label><div class="inputwrap"><input id="dividend" type="number" min="0" max="100" step="0.1" value="0" inputmode="decimal"><span>%</span></div></div>
+        </div>
+        <div class="divider"></div>
+        <span class="field-label">Positsiooni suund</span>
+        <div class="seg secondary" role="group" aria-label="Positsiooni suund">
+          <button id="long" type="button" aria-pressed="true">Ostan (long)</button>
+          <button id="short" type="button" aria-pressed="false">Müün (short)</button>
+        </div>
+        <div class="fields">
+          <div class="field"><label class="field-label" for="contracts">Lepingute arv</label><div class="inputwrap"><input id="contracts" type="number" min="1" max="10000" step="1" value="1" inputmode="numeric"><span>tk</span></div></div>
+          <div class="field"><label class="field-label" for="multiplier">Lepingu kordaja</label><div class="inputwrap"><input id="multiplier" type="number" min="1" max="100000" step="1" value="100" inputmode="numeric"><span>osakut</span></div></div>
+        </div>
+        <p class="mini-hint">Näidisandmed. Kasutatakse pidevalt kapitaliseeritud intressi ja pidevat dividenditootlust. Graafiku algne preemia võrdub arvutatud mudelihinnaga.</p>
+        <div id="error" class="error" role="alert"></div>
+      </section>
+
+      <div class="rightcol">
+        <section class="panel result-panel" aria-labelledby="results-title">
+          <div class="result-head"><h2 id="results-title">Arvutuste tulemused</h2><span class="model-tag">BSM mudel</span></div>
+          <div class="big-result" aria-live="polite" aria-atomic="true">
+            <div><div class="caption">Teoreetiline optsioonipreemia / alusvara ühik</div><div class="price" id="price">—</div><div class="price-unit" id="price-extra">Call-optsiooni mudelihind</div></div><div class="right-bubble" id="symbol">C</div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><div class="m-title" id="cash-label">Algne preemia</div><div class="m-value" id="cash">—</div></div>
+            <div class="metric"><div class="m-title">Tasakaalupunkt</div><div class="m-value" id="breakeven">—</div></div>
+            <div class="metric"><div class="m-title">Sisemine väärtus</div><div class="m-value" id="intrinsic">—</div></div>
+          </div>
+          <div class="greeks-title"><h2>Kreeklased (Greeks)</h2><span class="subtle">1 alusvara ühiku kohta</span></div>
+          <div class="greeks">
+            <div class="greek"><label title="Optsioonihinna muutus alusvara hinna 1 ühiku muutuse korral">Delta Δ</label><strong id="delta">—</strong></div>
+            <div class="greek"><label title="Delta muutus alusvara hinna 1 ühiku muutuse korral">Gamma Γ</label><strong id="gamma">—</strong></div>
+            <div class="greek"><label title="Optsioonihinna muutus ühe kalendripäeva möödumisel">Theta Θ / p</label><strong id="theta">—</strong></div>
+            <div class="greek"><label title="Optsioonihinna muutus volatiilsuse 1 protsendipunkti muutuse korral">Vega ν / 1%</label><strong id="vega">—</strong></div>
+            <div class="greek"><label title="Optsioonihinna muutus intressi 1 protsendipunkti muutuse korral">Rho ρ / 1%</label><strong id="rho">—</strong></div>
+          </div>
+          <p class="mini-hint">Theta on ühe kalendripäeva kohta; vega ja rho ühe protsendipunkti kohta. Need on ligikaudsed lokaalsed tundlikkused.</p>
+        </section>
+
+        <section class="panel chart-panel" aria-labelledby="chart-title">
+          <div class="result-head" style="margin-bottom:0"><h2 id="chart-title">Kasum / kahjum lõpptähtajal</h2><span class="model-tag" id="chart-position">LONG CALL</span></div>
+          <p class="chart-subtitle">Positsiooni kogukasum või -kahjum (P/L), eeldades mudelihinnaga tehingut.</p>
+          <div class="chartframe"><svg id="payoff-chart" viewBox="0 0 720 295" role="img" aria-label="Optsioonipositsiooni kasumi ja kahjumi graafik lõpptähtajal"></svg></div>
+          <div class="chart-foot"><div class="legend"><span><i class="green"></i>Kasum</span><span><i class="red"></i>Kahjum</span></div><span id="chart-detail">Alusvara hind lõpptähtajal ($)</span></div>
+        </section>
+      </div>
+    </div>
+
+    <aside class="about" aria-label="Mudeli selgitus"><div><strong>Mida see kalkulaator näitab?</strong><p>Black–Scholes–Mertoni mudeli teoreetilist väärtust Euroopa tüüpi call- ja put-optsioonidele, mitte reaalset turupakkumist. Ei arvesta Ameerika optsiooni ennetähtaegset täitmist, üksikute dividendide täpseid kuupäevi, teenustasusid, hinnavahet ega ajas muutuvat volatiilsust. Tegelik tehinguhind võib erineda.</p></div><div class="decor" aria-hidden="true">Δ Γ Θ</div></aside>
+  </main>
+  <footer class="wrap"><span>© 2026 OptionLab · Hariduslik analüüsitööriist</span><span>Arvutused toimuvad sinu brauseris · Ilma serverita</span></footer>
+
+<script>
+(() => {
+  'use strict';
+  const byId = id => document.getElementById(id);
+  const defaults = { spot:100, strike:105, days:90, vol:25, rate:4, dividend:0, contracts:1, multiplier:100 };
+  const keys = Object.keys(defaults);
+  let type = 'call', side = 'long';
+  const money = (x, maxDigits = 2) => '$' + Number(x).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits:maxDigits });
+  const number = (x, digits=4) => Number(x).toLocaleString('en-US', {minimumFractionDigits:digits,maximumFractionDigits:digits});
+
+  // Standard normal density and CDF (Abramowitz–Stegun approximation).
+  function pdf(x) { return Math.exp(-x*x/2)/Math.sqrt(2*Math.PI); }
+  function cdf(x) {
+    const a = Math.abs(x), t = 1/(1+0.2316419*a);
+    const polynomial = t*(0.319381530+t*(-0.356563782+t*(1.781477937+t*(-1.821255978+t*1.330274429))));
+    const estimate = 1 - pdf(a)*polynomial;
+    return x >= 0 ? estimate : 1-estimate;
+  }
+  function bsm({S,K,T,sigma,r,q}, kind) {
+    const rootT = Math.sqrt(T);
+    const d1 = (Math.log(S/K)+(r-q+0.5*sigma*sigma)*T)/(sigma*rootT);
+    const d2 = d1 - sigma*rootT;
+    const discountS = Math.exp(-q*T), discountK = Math.exp(-r*T);
+    const call = S*discountS*cdf(d1) - K*discountK*cdf(d2);
+    const put = K*discountK*cdf(-d2) - S*discountS*cdf(-d1);
+    const isCall = kind === 'call';
+    const price = Math.max(0,isCall ? call : put);
+    const delta = isCall ? discountS*cdf(d1) : discountS*(cdf(d1)-1);
+    const gamma = discountS*pdf(d1)/(S*sigma*rootT);
+    const vega = S*discountS*pdf(d1)*rootT/100;
+    const rho = (isCall ? K*T*discountK*cdf(d2) : -K*T*discountK*cdf(-d2))/100;
+    const common = -(S*discountS*pdf(d1)*sigma)/(2*rootT);
+    const thetaAnnual = isCall
+      ? common - r*K*discountK*cdf(d2) + q*S*discountS*cdf(d1)
+      : common + r*K*discountK*cdf(-d2) - q*S*discountS*cdf(-d1);
+    return {price,delta,gamma,vega,rho,theta:thetaAnnual/365,d1,d2};
+  }
+  function chosen(id, ids) { ids.forEach(k => byId(k).setAttribute('aria-pressed', String(k === id))); }
+  function setText(id, val) { byId(id).textContent = val; }
+  function readInputs() {
+    const v = {};
+    keys.forEach(k => v[k] = Number(byId(k).value));
+    if (keys.some(k => byId(k).value.trim()==='' || !Number.isFinite(v[k]))) throw new Error('Täida kõik väljad korrektsete arvudega.');
+    if (!(v.spot>0 && v.spot<=1e7 && v.strike>0 && v.strike<=1e7)) throw new Error('Alusvara hind ja täitmishind peavad olema vahemikus 0–10 000 000 (mitte null).');
+    if (!(Number.isInteger(v.days) && v.days>=1 && v.days<=36500)) throw new Error('Lõpptähtajani peab olema 1–36 500 täispäeva.');
+    if (!(v.vol>=0.01 && v.vol<=500)) throw new Error('Volatiilsus peab olema vahemikus 0,01–500%.');
+    if (!(v.rate>=-99 && v.rate<=100 && v.dividend>=0 && v.dividend<=100)) throw new Error('Kontrolli intressi ja dividenditootluse väärtusi.');
+    if (!(Number.isInteger(v.contracts) && v.contracts>=1 && v.contracts<=10000 && Number.isInteger(v.multiplier) && v.multiplier>=1 && v.multiplier<=100000)) throw new Error('Lepingute arv ja kordaja peavad olema positiivsed täisarvud.');
+    return v;
+  }
+  function svgEl(name, attrs = {}, parent) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg',name);
+    for (const [k,v] of Object.entries(attrs)) el.setAttribute(k,v);
+    if (parent) parent.appendChild(el);
+    return el;
+  }
+  function drawChart(v, premium) {
+    const svg=byId('payoff-chart'); svg.replaceChildren();
+    const W=720,H=295,L=79,R=27,TOP=25,BOT=43,pW=W-L-R,pH=H-TOP-BOT;
+    const K=v.strike, S=v.spot, factor=v.contracts*v.multiplier*(side==='long'?1:-1);
+    const breakEven=type==='call'?K+premium:K-premium;
+    const maxX=Math.max(S*1.65,K*1.65, breakEven*1.18,1);
+    const minX=Math.max(0,Math.min(S*.45,K*.45,breakEven*.75));
+    const xDomain=Math.max(maxX-minX,0.01);
+    const f = x => factor*((type==='call'?Math.max(x-K,0):Math.max(K-x,0))-premium);
+    const samples=Array.from({length:241},(_,i)=>{const x=minX+xDomain*i/240;return {x,y:f(x)};});
+    let minY=Math.min(0,...samples.map(p=>p.y)),maxY=Math.max(0,...samples.map(p=>p.y));
+    let pad=(maxY-minY)*.13 || 1; minY-=pad;maxY+=pad;
+    const px=x=>L+(x-minX)/xDomain*pW;
+    const py=y=>TOP+(maxY-y)/(maxY-minY)*pH;
+    const append=(name,attrs,parent=svg)=>svgEl(name,attrs,parent);
+    const label=(x,y,str,extra={})=>{const e=append('text',{x,y,fill:'#8699b4','font-size':11,'font-family':'Segoe UI,Arial,sans-serif',...extra});e.textContent=str;};
+    for(let i=0;i<=4;i++){
+      const value=minY+(maxY-minY)*(i/4),y=py(value);
+      append('line',{x1:L,y1:y,x2:W-R,y2:y,stroke:'#26374d','stroke-width':1});
+      const short = Math.abs(value)>=1000 ? (value/1000).toFixed(1)+'k' : Math.round(value).toString();
+      label(L-13,y+4,(value<0?'-':'')+'$'+short.replace('-',''),{'text-anchor':'end'});
+    }
+    for(let i=0;i<=4;i++){
+      const x=minX+xDomain*i/4;label(px(x),H-15,'$'+Math.round(x),{'text-anchor':'middle'});
+    }
+    const yZero=py(0);
+    append('line',{x1:L,y1:yZero,x2:W-R,y2:yZero,stroke:'#7a8ca7','stroke-width':1.5,'stroke-dasharray':'5 5','stroke-opacity':'.85'});
+    if(K>=minX&&K<=maxX){const kx=px(K); append('line',{x1:kx,y1:TOP,x2:kx,y2:H-BOT,stroke:'#6b83a1','stroke-dasharray':'3 5','stroke-opacity':'.6'});label(kx+5,TOP+12,'K = $'+K.toFixed(2),{'font-size':10});}
+    // Separate positive/negative segments at exact zero crossings.
+    const segments=[];let current=[];
+    for(let i=0;i<samples.length;i++){
+      const p=samples[i];
+      if (i===0){current=[p];continue;}
+      const prev=samples[i-1];
+      if((prev.y<0&&p.y>0)||(prev.y>0&&p.y<0)){
+        const t= -prev.y/(p.y-prev.y);
+        const cross={x:prev.x+(p.x-prev.x)*t,y:0};
+        current.push(cross);segments.push(current);current=[cross,p];
+      } else {current.push(p);}
+    }
+    if(current.length)segments.push(current);
+    for (const segment of segments){
+      if(segment.length<2)continue;
+      const mid=segment[Math.floor(segment.length/2)].y;
+      const color=mid>=0?'#7ef0cb':'#ffa4a4';
+      const path=segment.map((p,i)=>(i?'L':'M')+px(p.x).toFixed(2)+' '+py(p.y).toFixed(2)).join(' ');
+      append('path',{d:path,fill:'none',stroke:color,'stroke-width':3.5,'stroke-linecap':'round','stroke-linejoin':'round'});
+    }
+    if(breakEven>=minX&&breakEven<=maxX){
+      append('circle',{cx:px(breakEven),cy:yZero,r:5.5,fill:'#e3edff',stroke:'#315270','stroke-width':2});
+    }
+    const spotY=f(S);
+    if(S>=minX&&S<=maxX){append('circle',{cx:px(S),cy:py(spotY),r:4.5,fill:'#d6e2fc',stroke:'#435c7b','stroke-width':2});}
+    setText('chart-detail','S (praegu) = '+money(S)+' · K = '+money(K));
+    setText('chart-position',side.toUpperCase()+' '+type.toUpperCase());
+  }
+  function refresh(){
+    const err=byId('error');
+    try {
+      const v=readInputs();
+      const p=bsm({S:v.spot,K:v.strike,T:v.days/365,sigma:v.vol/100,r:v.rate/100,q:v.dividend/100},type);
+      const cost=p.price*v.contracts*v.multiplier;
+      const intrinsic=type==='call'?Math.max(v.spot-v.strike,0):Math.max(v.strike-v.spot,0);
+      const be=type==='call'?v.strike+p.price:v.strike-p.price;
+      setText('price',money(p.price,2));
+      setText('price-extra',(type==='call'?'Call':'Put')+'-optsiooni mudelihind');
+      setText('symbol',type==='call'?'C':'P');
+      setText('cash-label',side==='long'?'Makstav preemia':'Saadav preemia');
+      setText('cash',money(cost));
+      setText('breakeven',money(be));
+      setText('intrinsic',money(intrinsic));
+      ['delta','gamma','theta','vega','rho'].forEach(k=>setText(k,number(p[k],4)));
+      drawChart(v,p.price);
+      err.classList.remove('visible');err.textContent='';
+    } catch(e){err.textContent=e.message;err.classList.add('visible');}
+  }
+  keys.forEach(k => byId(k).addEventListener('input',refresh));
+  ['call','put'].forEach(k=>byId(k).addEventListener('click',()=>{type=k;chosen(k,['call','put']);refresh();}));
+  ['long','short'].forEach(k=>byId(k).addEventListener('click',()=>{side=k;chosen(k,['long','short']);refresh();}));
+  byId('reset').addEventListener('click',()=>{ keys.forEach(k=>byId(k).value=defaults[k]);type='call';side='long';chosen('call',['call','put']);chosen('long',['long','short']);refresh(); });
+  refresh();
+  // Expose the pure pricer for simple automated verification; no external dependencies.
+  window.OptionLab={bsm,cdf};
+})();
+</script>
+</body>
+</html>
